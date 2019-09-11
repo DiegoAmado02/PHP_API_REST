@@ -162,5 +162,99 @@ class API{
 	static function JSON_TO_ARRAY($json){
 		return json_decode($json,true);
 	}
+	
+	static function intert(){
+        $ids = Array(82518059,82518151,82518422,82518051,82518102,82518223,82518176,82518611,82518352,82518207,82518443,82518241,82518634,82518144);
+        $unicef = new Unicef();
+        for ($i = 0; $i < count($ids); $i ++){
+            $unicef->insertDataCampana($ids[$i],82);
+        }
+    }
+    static function extraction(){
+        $datos = file_get_contents("http://192.168.100.152/unicefws/data");
+        $array = API::JSON_TO_ARRAY($datos);
+        return $array;
+    }
+
+    static function extractionSaving(){
+        $datos = file_get_contents("http://192.168.100.152/unicefws/saving");
+        $array = API::JSON_TO_ARRAY($datos);
+        return $array;
+    }
+
+    /**
+     * Enviar parámetros a un servidor a través del protocolo HTTP (POST) para obtener Token de autenticación
+     *
+     * @param string $url URL recurso, ejemplo: http://website.com/recurso
+     * @param string $username usuario de autenticaón
+     * @param string $password contraseña de autenticación
+     * @return JSON
+     */
+    static function POSTAuth($username , $password){
+        $url = "http://ws.agenciasunicef.com/api/Authenticate?username=oscar.quinche@interactivo.com.co&password=Unicef2019*";
+        //$url = "http://ws.agenciasunicef.com/api/Authenticate";
+        $data = Array(
+            "username" => $username,
+            "password" => $password
+        );
+
+        foreach ( $data as $key => $value) {
+            $post_items[] = $key . '=' . $value;
+        }
+
+        $postdata = json_encode($data);
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_POST, 1);
+        //curl_setopt($ch, CURLOPT_POSTFIELDS, $postdata);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json; charset=utf-8', 'Content-Length: 0'));
+        $result = curl_exec($ch);
+        curl_close($ch);
+        $lines = explode("\n",$result);
+        $token = explode(":",$lines[14]);
+        return trim($token[1]);
+
+    }
+
+    static function POST_($url,$token, $json){
+
+        $headers = array(
+            "Content-Type: application/json; charset=utf-8",
+            'HTTP/1.0 401 Unauthorized',
+            "token: {$token}",
+            "Content-Length: ". strlen($json)
+        );
+
+        $ch = curl_init($url);
+        //curl_setopt($ch,CURLOPT_URL,urlencode($url));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch,CURLOPT_POSTFIELDS,$json);
+        curl_setopt($ch, CURLOPT_USERPWD, "token: {$token}");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch,CURLOPT_HTTPHEADER, $headers);
+
+
+        $response = curl_exec($ch);
+        curl_close ($ch);
+        $lines = explode("\n",$response);
+
+        /*
+         * $lines[0] => Respuesta del servidor
+         * $lines[12] => Mensaje del error 400 Bad Request.
+         * */
+
+        return $lines;
+    }
 }
 ?>
